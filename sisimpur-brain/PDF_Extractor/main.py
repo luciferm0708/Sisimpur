@@ -1,4 +1,6 @@
-import nltk
+import easyocr
+from PIL import Image
+import cv2
 import re
 from pdfminer.high_level import extract_text
 
@@ -22,3 +24,15 @@ def extract_ocr_text_based_pdf(pdf_path):
     return text
 
 extract_ocr_text_based_pdf('sisimpur-brain/PDF_Extractor/data/1mb.pdf')
+
+
+def easy_ocr(image_path):
+    reader = easyocr.Reader(['bn', 'en'])
+    img = Image.open(image_path)
+    result = reader.readtext(img)
+    return result
+
+result = easy_ocr('1.jpg')
+for bbox, text, prob in result:
+    print(f"Detected text: {text}, Confidence: {prob}, Bounding Box: {bbox}")
+
