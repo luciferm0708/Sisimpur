@@ -32,7 +32,7 @@ def easy_ocr(image_path):
     result = reader.readtext(img)
     return result
 
-result = easy_ocr('1.jpg')
+result = easy_ocr('sisimpur-brain/PDF_Extractor/data/1.jpg')
 for bbox, text, prob in result:
     print(f"Detected text: {text}, Confidence: {prob}, Bounding Box: {bbox}")
 
