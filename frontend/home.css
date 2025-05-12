@@ -209,29 +209,34 @@ h1, h2, h3, h4, h5, h6 {
 .hero-image-container {
     position: relative;
     padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .hero-image {
     width: 100%;
+    height: auto;
+    max-width: 800px;
     border-radius: 16px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
     transition: all 0.3s ease;
+    object-fit: contain;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 .floating {
-    animation: float 6s ease-in-out infinite;
+    animation: float 3s ease-in-out infinite;
 }
 
 @keyframes float {
-    0% {
-        transform: translateY(0px);
+    0%, 100% {
+        transform: translateY(0);
     }
     50% {
-        transform: translateY(-20px);
-    }
-    100% {
-        transform: translateY(0px);
+        transform: translateY(-15px);
     }
 }
 
