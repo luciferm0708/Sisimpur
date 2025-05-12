@@ -10,6 +10,50 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="home.css" rel="stylesheet">
+    <style>
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(0, 255, 255, 0.7); /* Vibrant cyan color with higher opacity */
+            border-radius: 50%;
+            animation: float 15s linear infinite;
+        }
+        @keyframes float {
+            0% {
+                transform: translate(0, 0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.5;
+            }
+            90% {
+                opacity: 0.5;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty));
+                opacity: 0;
+            }
+        }
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
 </head>
 <body>
     <!-- Background Elements -->
@@ -65,7 +109,7 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="hero-image-container">
-                        <img src="/api/placeholder/800/500" alt="SISIMPUR Dashboard" class="hero-image floating" />
+                        <img src="images/img1.png" alt="SISIMPUR Dashboard" class="hero-image floating" />
                     </div>
                 </div>
             </div>
@@ -73,7 +117,7 @@
     </section>
     
     <!-- Features Section -->
-    <section class="features-section" id="features">
+    <section class="features-section py-5 my-5" id="features">
         <div class="container">
             <div class="text-center mb-5">
                 <h2 class="section-title">Revolutionize Your Exam Preparation</h2>
@@ -114,10 +158,10 @@
                 <div class="col-md-4">
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <i class="fas fa-bolt"></i>
+                            <i class="fas fa-trophy"></i>
                         </div>
-                        <h3 class="feature-title">10-Minute Memory Boost</h3>
-                        <p>Quick flash-style sessions for rapid revision when you're short on time. Perfect for last-minute preparation.</p>
+                        <h3 class="feature-title">Global Leaderboard</h3>
+                        <p>Compete with peers worldwide, track your ranking, and stay motivated with our interactive leaderboard system.</p>
                     </div>
                 </div>
                 
@@ -144,6 +188,158 @@
         </div>
     </section>
     
+    <!-- How It Works Section -->
+    <section class="how-it-works-section py-5 my-5" id="how-it-works">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-subtitle">Get started with SISIMPUR in three simple steps</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <h3>Upload Your Materials</h3>
+                        <p>Upload your study materials in PDF, Word, or text format. Our system accepts files up to 20MB.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <h3>AI Processing</h3>
+                        <p>Our AI analyzes your content and generates relevant questions based on the material.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <h3>Start Practicing</h3>
+                        <p>Begin practicing with AI-generated questions and track your progress in real-time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials-section py-5 my-5" id="testimonials">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">What Our Users Say</h2>
+                <p class="section-subtitle">Join thousands of successful students who transformed their exam preparation</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <p>"SISIMPUR helped me ace my medical entrance exam. The AI-generated questions were spot on!"</p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-info">
+                                <h4>Sarah Johnson</h4>
+                                <p>Medical Student</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <p>"The 10-minute memory boost feature is a game-changer for quick revision before exams."</p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-info">
+                                <h4>Michael Chen</h4>
+                                <p>Engineering Student</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <p>"The progress tracking feature helped me identify my weak areas and improve significantly."</p>
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-info">
+                                <h4>Emma Davis</h4>
+                                <p>Law Student</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section py-5 my-5" id="faq">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title text-white">Frequently Asked Questions</h2>
+                <p class="section-subtitle text-white">Find answers to common questions about SISIMPUR</p>
+            </div>
+            
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    How accurate are the AI-generated questions?
+                                </button>
+                            </h3>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-white">
+                                    Our AI has been trained on millions of exam questions and academic content to generate highly accurate and relevant questions. The system continuously learns and improves based on user feedback.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    What file formats are supported?
+                                </button>
+                            </h3>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-white">
+                                    We support PDF, Word documents (.doc, .docx), and plain text files (.txt). Files must be under 20MB in size.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h3 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    Can I cancel my subscription anytime?
+                                </button>
+                            </h3>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-white">
+                                    Yes, you can cancel your subscription at any time. You'll continue to have access to premium features until the end of your billing period.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action Section -->
+    <section class="cta-section py-5 my-5" id="signup">
+        <div class="container">
+            <div class="cta-content text-center">
+                <h2>Ready to Transform Your Exam Preparation?</h2>
+                <p>Join thousands of students who are already using SISIMPUR to ace their exams</p>
+                <div class="cta-buttons">
+                    <a href="#signup" class="btn btn-glow btn-lg">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer>
         <div class="container">
@@ -202,15 +398,26 @@
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Particles animation
+        // Random particle animation
         const particlesContainer = document.getElementById('particles');
         for (let i = 0; i < 50; i++) {
             const particle = document.createElement('div');
             particle.className = 'particle';
+            
+            // Random starting position
             particle.style.left = Math.random() * 100 + '%';
             particle.style.top = Math.random() * 100 + '%';
-            particle.style.animationDuration = (Math.random() * 3 + 2) + 's';
-            particle.style.animationDelay = Math.random() * 2 + 's';
+            
+            // Random movement direction
+            const tx = (Math.random() - 0.5) * 200; // Random X movement (-100px to 100px)
+            const ty = (Math.random() - 0.5) * 200; // Random Y movement (-100px to 100px)
+            particle.style.setProperty('--tx', `${tx}px`);
+            particle.style.setProperty('--ty', `${ty}px`);
+            
+            // Random duration and delay
+            particle.style.animationDuration = (Math.random() * 5 + 3) + 's'; // Faster movement (3-8 seconds)
+            particle.style.animationDelay = Math.random() * 2 + 's'; // Shorter delay (0-2 seconds)
+            
             particlesContainer.appendChild(particle);
         }
     </script>
