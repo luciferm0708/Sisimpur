@@ -13,7 +13,7 @@ packaging==25.0
 pdfminer.six==20250506
 pycparser==2.22
 regex==2024.11.6
-requests==2.31.0
+requests==2.32.0
 sqlparse==0.5.3
 tqdm==4.67.1
 tzdata==2025.2
