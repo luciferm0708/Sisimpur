@@ -50,7 +50,7 @@ identify==2.6.10
 idna==3.10
 imageio==2.37.0
 ipykernel==6.29.5
-ipython==9.2.0
+ipython>=8.18.1,<9.0.0
 ipython_pygments_lexers==1.1.1
 jedi==0.19.2
 Jinja2==3.1.6
@@ -80,7 +80,7 @@ opencv-python-headless==4.11.0.86
 openpyxl==3.1.5
 packaging==25.0
 parso==0.8.4
-pdfminer.six==20250506
+pdfminer.six==20250327
 pdfplumber==0.11.6
 pdftext==0.6.2
 pillow==10.4.0
@@ -109,7 +109,7 @@ python-bidi==0.6.6
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 python-pptx==1.0.2
-pywin32==310
+pywin32>=306,<307; sys_platform == "win32"
 PyYAML==6.0.2
 pyzmq==26.4.0
 RapidFuzz==3.13.0
