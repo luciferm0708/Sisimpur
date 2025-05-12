@@ -10,9 +10,6 @@ from pathlib import Path
 import requests
 
 load_dotenv()
-env_path = Path(__file__).resolve().parent.parent / '.env'
-# Load the .env from the root directory
-load_dotenv(dotenv_path=env_path)
 
 def is_valid_email(email):
     email_validator = EmailValidationService(
