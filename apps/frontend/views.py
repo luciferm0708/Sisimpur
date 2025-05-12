@@ -5,7 +5,7 @@ from django.conf import settings
 import json
 import os
 from dotenv import load_dotenv
-from .utils import MailchimpService
+from .utils import MailchimpService, EmailValidationService
 from pathlib import Path
 import requests
 
@@ -14,36 +14,12 @@ env_path = Path(__file__).resolve().parent.parent / '.env'
 # Load the .env from the root directory
 load_dotenv(dotenv_path=env_path)
 
-def is_valid_email_by_check01(email):
-    url = "http://apilayer.net/api/check"
-    params = {
-        "access_key": "6cb1b53c3055ade26f8a5f739fd774a2",
-        "email": email,
-        "smtp": 1,
-        "format": 1,
-    }
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        data = response.json()
-        return data.get("smtp_check", False)
-    except requests.RequestException:
-        return False
-
-def is_valid_email_by_check02(email):
-    url = "https://api.emailvalidation.io/v1/info"
-    params = {
-        "apikey": "ema_live_XBp8pY8ctIqMHBcHhJqgxJ6HVZUhJt3ic6pSbs2K",
-        "email": email,
-    }
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        data = response.json()
-        return data.get("smtp_check", False)
-    except requests.RequestException:
-        return False
-
 def is_valid_email(email):
-    return is_valid_email_by_check01(email) or is_valid_email_by_check02(email)
+    email_validator = EmailValidationService(
+        os.getenv("MAIL_BOXLAYER_API_KEY"),
+        os.getenv("EMAIL_VALIDATION_API_KEY")
+    )
+    return email_validator.is_valid_check_01(email) or email_validator.is_valid_check_02(email)
 
 def index(request):
     return render(request, 'index.html')
