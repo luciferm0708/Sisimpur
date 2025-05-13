@@ -52,6 +52,16 @@ class TextPDFExtractor(BaseExtractor):
 class ImagePDFExtractor(BaseExtractor):
     """Extractor for image-based PDF documents"""
 
+    def __init__(self, language: str = "eng"):
+        """
+        Initialize the image-based PDF extractor.
+
+        Args:
+            language: Language code for OCR (e.g., 'eng', 'ben')
+        """
+        super().__init__()
+        self.language = language
+
     def extract(self, file_path: str) -> str:
         """
         Extract text from image-based PDF using OCR.
@@ -63,49 +73,148 @@ class ImagePDFExtractor(BaseExtractor):
             Extracted text
         """
         try:
-            # Convert PDF to images
-            images = convert_from_path(file_path)
-            text = ""
+            # Try to convert PDF to images using pdf2image (requires Poppler)
+            try:
+                logger.info("Attempting to convert PDF to images using pdf2image")
+                images = convert_from_path(file_path)
+                return self._process_images(images, file_path)
+            except Exception as pdf2image_error:
+                logger.warning(f"pdf2image failed (Poppler may not be installed): {pdf2image_error}")
+                logger.info("Falling back to PyMuPDF for image extraction")
 
-            for i, img in enumerate(images):
-                text += f"--- Page {i + 1} ---\n"
+                # Fallback to PyMuPDF for image extraction
+                return self._extract_with_pymupdf(file_path)
 
-                # Use Gemini for Bengali, pytesseract for English
-                if self.language == "ben":
-                    page_text = self._extract_with_gemini(img)
+        except Exception as e:
+            logger.error(f"Error extracting text from image-based PDF: {e}")
+            raise
+
+    def _process_images(self, images, file_path):
+        """Process a list of images and extract text from them."""
+        text = ""
+
+        # Check if this is likely a question paper
+        is_likely_question_paper = False
+        if len(images) > 0:
+            # Check the first page to see if it's a question paper
+            sample_text = pytesseract.image_to_string(images[0], lang='ben+eng')
+            is_likely_question_paper = self._is_likely_question_paper(sample_text)
+            if is_likely_question_paper:
+                logger.info("Detected PDF as likely question paper")
+                # If it's a question paper in Bengali, force language to Bengali
+                bengali_chars = sum(1 for c in sample_text if '\u0980' <= c <= '\u09FF')
+                if bengali_chars > len(sample_text) * 0.2:
+                    self.language = "ben"
+                    logger.info("Detected Bengali language in question paper")
+
+        for i, img in enumerate(images):
+            text += f"--- Page {i + 1} ---\n"
+
+            # Use Gemini for Bengali or question papers, pytesseract for English
+            if self.language == "ben" or is_likely_question_paper:
+                page_text = self._extract_with_gemini(img, is_likely_question_paper)
+            else:
+                page_text = pytesseract.image_to_string(img, lang=self.language)
+
+            text += page_text
+            text += "\n\n"
+
+        temp_path = self.save_to_temp(text, file_path)
+        return text
+
+    def _extract_with_pymupdf(self, file_path: str) -> str:
+        """
+        Extract text from PDF using PyMuPDF and OCR.
+
+        This is a fallback method when pdf2image/Poppler is not available.
+
+        Args:
+            file_path: Path to the PDF document
+
+        Returns:
+            Extracted text
+        """
+        import fitz
+        import io
+        from PIL import Image
+
+        text = ""
+        is_likely_question_paper = False
+
+        try:
+            # Open the PDF
+            doc = fitz.open(file_path)
+
+            # Check first page for question paper detection
+            if len(doc) > 0:
+                first_page = doc[0]
+                # Render the first page as an image
+                pix = first_page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+
+                # Check if it's a question paper
+                sample_text = pytesseract.image_to_string(img, lang='ben+eng')
+                is_likely_question_paper = self._is_likely_question_paper(sample_text)
+
+                if is_likely_question_paper:
+                    logger.info("Detected PDF as likely question paper")
+                    # If it's a question paper in Bengali, force language to Bengali
+                    bengali_chars = sum(1 for c in sample_text if '\u0980' <= c <= '\u09FF')
+                    if bengali_chars > len(sample_text) * 0.2:
+                        self.language = "ben"
+                        logger.info("Detected Bengali language in question paper")
+
+            # Process each page
+            for page_num, page in enumerate(doc):
+                text += f"--- Page {page_num + 1} ---\n"
+
+                # Try to render the page as an image
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom for better OCR
+
+                # Convert to PIL Image
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+
+                # Use Gemini for Bengali or question papers, pytesseract for English
+                if self.language == "ben" or is_likely_question_paper:
+                    page_text = self._extract_with_gemini(img, is_likely_question_paper)
                 else:
                     page_text = pytesseract.image_to_string(img, lang=self.language)
 
                 text += page_text
                 text += "\n\n"
 
+            # Close the document
+            doc.close()
+
             temp_path = self.save_to_temp(text, file_path)
             return text
 
         except Exception as e:
-            logger.error(f"Error extracting text from image-based PDF: {e}")
+            logger.error(f"Error extracting with PyMuPDF: {e}")
             raise
 
-    def _extract_with_gemini(self, img: Image.Image) -> str:
+    def _extract_with_gemini(self, img: Image.Image, is_question_paper: bool = False) -> str:
         """
         Extract text using Gemini for Bengali content.
 
         Args:
             img: The image to extract text from
+            is_question_paper: Whether the image is from a question paper
 
         Returns:
             Extracted text
         """
-        # First, try to detect if this is a question paper using a simple heuristic
-        try:
-            # Get a small sample of text to check if it's a question paper
-            sample_text = pytesseract.image_to_string(img, lang='ben')
-            is_likely_question_paper = self._is_likely_question_paper(sample_text)
-        except Exception:
-            is_likely_question_paper = False
+        # If not already determined, check if this is a question paper
+        if not is_question_paper:
+            try:
+                # Get a small sample of text to check if it's a question paper
+                sample_text = pytesseract.image_to_string(img, lang='ben+eng')
+                is_question_paper = self._is_likely_question_paper(sample_text)
+            except Exception:
+                is_question_paper = False
 
         # Use a specialized prompt for question papers
-        if is_likely_question_paper:
+        if is_question_paper:
             prompt = (
                 "Extract all text from this question paper image with precise formatting. "
                 "This appears to be an exam or question paper. "
