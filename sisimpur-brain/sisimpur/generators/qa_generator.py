@@ -15,9 +15,6 @@ from ..utils.api_utils import api
 from ..config import (
     QA_GEMINI_MODEL,
     FALLBACK_GEMINI_MODEL,
-    CHUNK_SIZE,
-    CHUNK_OVERLAP,
-    MIN_WORDS_PER_CHUNK,
     RATE_LIMIT_BATCH_SIZE,
     RATE_LIMIT_COOLDOWN,
 )
@@ -129,28 +126,6 @@ class QAGenerator:
         except Exception as e:
             logger.error(f"Error generating Q&A pairs: {e}")
             raise
-
-    def _split_text(self, text: str) -> List[str]:
-        """
-        Split text into chunks for processing.
-
-        Args:
-            text: The text to split
-
-        Returns:
-            List of text chunks
-        """
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP,
-            separators=["\n\n", "\n", ". ", " ", ""]
-        )
-        chunks = text_splitter.split_text(text)
-
-        # Filter out chunks that are too short or contain little information
-        chunks = [chunk for chunk in chunks if len(chunk.split()) > MIN_WORDS_PER_CHUNK]
-
-        return chunks
 
     def _generate_qa_for_chunk(self, chunk: str, num_questions: int) -> List[Dict[str, str]]:
         """
