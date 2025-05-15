@@ -1,10 +1,8 @@
-# sisimpur/pipeline/generate.py
 from .base import Step
 from ..generators.qa_generator import QAGenerator
 from ..generators.question_paper_processor import QuestionPaperProcessor
 
 class GenerateQAStep(Step):
-    """Generate Q&A (or question-paper) pairs."""
     def run(self, context: dict) -> dict:
         meta = context['metadata']
         text = context['extracted_text']

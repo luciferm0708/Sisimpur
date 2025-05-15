@@ -16,6 +16,7 @@ from PIL import Image
 from ..config import MIN_TEXT_LENGTH
 
 logger = logging.getLogger("sisimpur.detector")
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 def detect_question_paper(text: str, language: str) -> bool:
     """
@@ -104,7 +105,7 @@ def detect_document_type(file_path: str) -> Dict[str, Any]:
         "file_name": file_path.name,
         "file_size": file_path.stat().st_size,
         "extension": file_ext,
-        "is_question_paper": False,  # Default value, will be updated if detected
+        "is_question_paper": False, 
     }
 
     # Detect document type based on extension
@@ -174,7 +175,7 @@ def detect_document_type(file_path: str) -> Dict[str, Any]:
                             metadata["language"] = "english"
 
                         # Check if it's a question paper
-                        metadata["is_question_paper"] = detect_question_paper(sample_text, metadata.get("language", "english"))
+                        metadata["is_question_paper"] = True#detect_question_paper(sample_text, metadata.get("language", "english"))
 
             # Determine if PDF is image-based or text-based
             # A PDF is considered image-based if:
@@ -206,7 +207,7 @@ def detect_document_type(file_path: str) -> Dict[str, Any]:
 
             # If question paper wasn't detected, try with the full text
             if "is_question_paper" not in metadata:
-                metadata["is_question_paper"] = detect_question_paper(text_content, metadata.get("language", "english"))
+                metadata["is_question_paper"] = True#detect_question_paper(text_content, metadata.get("language", "english"))
 
             # Close the document
             doc.close()
@@ -232,7 +233,7 @@ def detect_document_type(file_path: str) -> Dict[str, Any]:
                 metadata["language"] = "english"
 
             # Detect if this is a question paper
-            metadata["is_question_paper"] = detect_question_paper(text, metadata["language"])
+            metadata["is_question_paper"] = True#detect_question_paper(text, metadata["language"])
 
         except Exception as e:
             logger.error(f"Error detecting language: {e}")

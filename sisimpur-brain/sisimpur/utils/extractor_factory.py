@@ -1,5 +1,3 @@
-# sisimpur/utils/extractor_factory.py
-
 from ..extractors import TextPDFExtractor, ImagePDFExtractor, ImageExtractor
 from ..extractors.base import BaseExtractor
 

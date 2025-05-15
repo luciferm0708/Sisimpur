@@ -3,7 +3,7 @@ Main document processor for Sisimpur Brain.
 
 This module provides the main document processing pipeline.
 """
-
+#Need Fine tuning here
 import logging
 from typing import Dict, Any, Optional
 
@@ -60,6 +60,9 @@ class DocumentProcessor:
                 logger.info(f"Directly extracted {len(qa_pairs)} questions from PDF question paper")
 
             else:
+                logger.info(f"Extracting text from document: {file_path}")
+                extractor = self._get_extractor(metadata)
+                extracted_text = extractor.extract(file_path)
                 # Standard processing pipeline for other documents
                 # Step 2: Extract text based on document type
                 if is_question_paper:
@@ -99,6 +102,8 @@ class DocumentProcessor:
             # Step 4: Save Q&A pairs to JSON
             output_file = save_qa_pairs(qa_pairs, file_path)
             logger.info(f"Q&A pairs saved to {output_file}")
+            return output_file
+
 
         except Exception as e:
             logger.error(f"Error processing document: {e}")
@@ -120,18 +125,18 @@ class DocumentProcessor:
         if doc_type == "pdf":
             pdf_type = metadata.get("pdf_type")
             if pdf_type == "text_based":
-                logger.info("Using TextPDFExtractor")
+                logging.getLogger("sisimpur.processor").info("Using TextPDFExtractor")
                 return TextPDFExtractor()
             else:  # image_based or unknown
                 language = metadata.get("language", "eng")
                 lang_code = "ben" if language == "bengali" else "eng"
-                logger.info(f"Using ImagePDFExtractor with language: {lang_code}")
+                logging.getLogger("sisimpur.processor").info(f"Using ImagePDFExtractor with language: {lang_code}")
                 return ImagePDFExtractor(language=lang_code)
 
         elif doc_type == "image":
             language = metadata.get("language", "eng")
             lang_code = "ben" if language == "bengali" else "eng"
-            logger.info(f"Using ImageExtractor with language: {lang_code}")
+            logging.getLogger("sisimpur.processor").info(f"Using ImageExtractor with language: {lang_code}")
             return ImageExtractor(language=lang_code)
 
         else:

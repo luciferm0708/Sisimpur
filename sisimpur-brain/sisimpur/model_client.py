@@ -1,4 +1,3 @@
-# sisimpur/model_client.py
 import logging
 from .utils.api_utils import api
 from .config import DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL
@@ -6,7 +5,6 @@ from .config import DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL
 logger = logging.getLogger("sisimpur.model_client")
 
 class ModelClient:
-    """Wrap API calls, retries, fallback, and logging."""
     def __init__(self, primary: str = DEFAULT_GEMINI_MODEL, fallback: str = FALLBACK_GEMINI_MODEL):
         self.primary = primary
         self.fallback = fallback

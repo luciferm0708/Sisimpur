@@ -5,7 +5,6 @@ from .generate import GenerateQAStep
 from .persist import PersistStep
 
 class Pipeline:
-    """Orchestrate a sequence of Steps."""
     def __init__(self, steps: list[Step]):
         self.steps = steps
 
