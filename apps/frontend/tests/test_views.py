@@ -18,7 +18,7 @@ class coming_soonViewTest(TestCase):
     def test_coming_soon_view_uses_correct_template(self):
         """Test that the coming_soon view uses the correct template"""
         response = self.client.get(self.url)
-        self.assertTemplateUsed(response, 'coming_soon.html')
+        self.assertTemplateUsed(response, 'coming_soon/coming_soon.html')
 
     def test_coming_soon_view_contains_expected_content(self):
         """Test that the coming_soon view contains expected content"""
