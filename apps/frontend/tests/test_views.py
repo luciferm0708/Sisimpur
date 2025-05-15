@@ -2,26 +2,26 @@ from django.test import TestCase, Client
 from django.urls import reverse
 
 
-class IndexViewTest(TestCase):
-    """Test cases for the index view"""
+class coming_soonViewTest(TestCase):
+    """Test cases for the coming_soon view"""
 
     def setUp(self):
         """Set up test client"""
         self.client = Client()
-        self.url = reverse('index')
+        self.url = reverse('coming_soon')
 
-    def test_index_view_status_code(self):
-        """Test that the index view returns a 200 status code"""
+    def test_coming_soon_view_status_code(self):
+        """Test that the coming_soon view returns a 200 status code"""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
 
-    def test_index_view_uses_correct_template(self):
-        """Test that the index view uses the correct template"""
+    def test_coming_soon_view_uses_correct_template(self):
+        """Test that the coming_soon view uses the correct template"""
         response = self.client.get(self.url)
-        self.assertTemplateUsed(response, 'index.html')
+        self.assertTemplateUsed(response, 'coming_soon.html')
 
-    def test_index_view_contains_expected_content(self):
-        """Test that the index view contains expected content"""
+    def test_coming_soon_view_contains_expected_content(self):
+        """Test that the coming_soon view contains expected content"""
         response = self.client.get(self.url)
         self.assertContains(response, 'SISIMPUR')
         self.assertContains(response, 'Transform any study material into customized exam questions with AI')

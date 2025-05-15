@@ -13,4 +13,4 @@ python manage.py test apps/frontend/tests apps/authentication/tests -v 2
 # Run with coverage (if installed)
 # coverage run --source='apps' manage.py test apps.frontend.tests apps.authentication.tests
 # coverage report
-# coverage html  # generates htmlcov/index.html
+# coverage html  # generates htmlcov/coming_soon.html

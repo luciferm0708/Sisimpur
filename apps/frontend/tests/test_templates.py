@@ -24,8 +24,8 @@ class TemplateTest(TestCase):
         self.assertIn('bootstrap.bundle.min.js', rendered)
         self.assertIn('main.js', rendered)
         
-    def test_index_template_extends_base(self):
-        """Test that the index template extends the base template"""
+    def test_coming_soon_template_extends_base(self):
+        """Test that the coming_soon template extends the base template"""
         rendered = render_to_string('coming_soon.html')
         
         # Check for content specific to coming_soon.html
