@@ -11,8 +11,8 @@ class AuthViewTest(TestCase):
         
     def test_auth_view_exists(self):
         """Test that the auth view function exists"""
-        from authentication.views import coming_soon
-        self.assertTrue(callable(coming_soon))
+        from authentication.views import index
+        self.assertTrue(callable(index))
         
     def test_auth_view_renders_template(self):
         """Test that the auth view renders the correct template"""
