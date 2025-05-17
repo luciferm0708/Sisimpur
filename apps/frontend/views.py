@@ -21,6 +21,18 @@ def is_valid_email(email):
 def coming_soon(request):
     return render(request, 'coming_soon/coming_soon.html')
 
+def home(request):
+    """
+    View for the home page
+    """
+    return render(request, 'home.html')
+
+def signupin(request):
+    """
+    View for the sign in / sign up page
+    """
+    return render(request, 'signupin.html')
+
 @csrf_exempt
 def subscribe_to_mailchimp(request):
     """
