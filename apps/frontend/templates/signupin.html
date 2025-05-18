@@ -40,10 +40,10 @@
 
       <p>Or Sign In With</p>
       <div class="social-icons">
-        <a href="#"><i class="bx bxl-google"></i></a>
-        <a href="#"><i class="bx bxl-facebook-circle"></i></a>
-        <a href="#"><i class="bx bxl-github"></i></a>
-        <a href="#"><i class="bx bxl-linkedin"></i></a>
+        <a href="{% url 'signupin' %}?social=google"><i class="bx bxl-google"></i></a>
+        <a href="{% url 'signupin' %}?social=facebook"><i class="bx bxl-facebook-circle"></i></a>
+        <a href="{% url 'signupin' %}?social=github"><i class="bx bxl-github"></i></a>
+        <a href="{% url 'signupin' %}?social=linkedin"><i class="bx bxl-linkedin"></i></a>
       </div>
       <div class="return-link">
         <a href="{% url 'home' %}">&#8592; Home </a>
@@ -78,10 +78,10 @@
       <button type="submit" class="btn">Sign Up</button>
       <p>Or Sign Up With</p>
       <div class="social-icons">
-        <a href="#"><i class="bx bxl-google"></i></a>
-        <a href="#"><i class="bx bxl-facebook-circle"></i></a>
-        <a href="#"><i class="bx bxl-github"></i></a>
-        <a href="#"><i class="bx bxl-linkedin"></i></a>
+        <a href="{% url 'signupin' %}?social=google"><i class="bx bxl-google"></i></a>
+        <a href="{% url 'signupin' %}?social=facebook"><i class="bx bxl-facebook-circle"></i></a>
+        <a href="{% url 'signupin' %}?social=github"><i class="bx bxl-github"></i></a>
+        <a href="{% url 'signupin' %}?social=linkedin"><i class="bx bxl-linkedin"></i></a>
       </div>
       <div class="return-link" style="justify-content: left; align-items: left">
         <a href="{% url 'home' %}">&#8592; Home</a>
@@ -106,4 +106,156 @@
 {% endblock %} {% block scripts %}
 <script src="{% static 'js/signupin.js' %}"></script>
 <script src="{% static 'js/background.js' %}"></script>
+<!-- Direct test script for toast container -->
+<script>
+  console.log('Testing toast container');
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM ready in signupin.html');
+
+    // Check if toast container exists
+    const toastContainer = document.getElementById('toast-container');
+    console.log('Toast container exists:', !!toastContainer);
+
+    // Add event listener for test button
+    const testToastBtn = document.getElementById('testToastBtn');
+    if (testToastBtn) {
+      testToastBtn.addEventListener('click', function() {
+        console.log('Test toast button clicked');
+
+        // Create a simple toast directly
+        if (toastContainer) {
+          const toast = document.createElement('div');
+          toast.className = 'toast toast-info';
+          toast.innerHTML = `
+            <div class="toast-header">
+              <div class="toast-icon"><i class="fas fa-info"></i></div>
+              <h5 class="toast-title">Button Test</h5>
+              <button class="toast-close">&times;</button>
+            </div>
+            <div class="toast-body">
+              This toast was triggered by the test button
+            </div>
+            <div class="toast-progress">
+              <div class="toast-progress-bar"></div>
+            </div>
+          `;
+          toastContainer.appendChild(toast);
+
+          // Add close button functionality
+          const closeBtn = toast.querySelector('.toast-close');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+              toast.style.opacity = '0';
+              toast.style.transform = 'translateX(100%)';
+              toast.style.transition = 'all 0.3s ease';
+
+              setTimeout(function() {
+                if (toast.parentNode) {
+                  toast.parentNode.removeChild(toast);
+                }
+              }, 300);
+            });
+          }
+
+          // Remove after 5 seconds
+          setTimeout(function() {
+            if (toast.parentNode) {
+              toast.remove();
+            }
+          }, 5000);
+        }
+      });
+    }
+
+    // Create a simple toast directly
+    if (toastContainer) {
+      const toast = document.createElement('div');
+      toast.className = 'toast toast-success';
+      toast.innerHTML = `
+        <div class="toast-header">
+          <div class="toast-icon"><i class="fas fa-check"></i></div>
+          <h5 class="toast-title">Direct Test</h5>
+          <button class="toast-close">&times;</button>
+        </div>
+        <div class="toast-body">
+          This is a direct test of the toast container
+        </div>
+        <div class="toast-progress">
+          <div class="toast-progress-bar"></div>
+        </div>
+      `;
+      toastContainer.appendChild(toast);
+
+      // Add close button functionality
+      const closeBtn = toast.querySelector('.toast-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(100%)';
+          toast.style.transition = 'all 0.3s ease';
+
+          setTimeout(function() {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+          }, 300);
+        });
+      }
+
+      // Remove after 5 seconds
+      setTimeout(function() {
+        if (toast.parentNode) {
+          toast.remove();
+        }
+      }, 5000);
+    }
+  });
+</script>
+<!-- Main toast script -->
+<script>
+  // Add direct toast notification for social media buttons
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Social media script loaded');
+
+    // Get all social media links
+    const socialLinks = document.querySelectorAll('.social-icons a');
+
+    // Add click event listener to each link
+    socialLinks.forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        // Get the social media type from the URL
+        const url = new URL(this.href);
+        const socialType = url.searchParams.get('social');
+
+        if (socialType && typeof window.showToast === 'function') {
+          // We'll prevent default behavior to show toast immediately
+
+          // Prevent default link behavior to show toast immediately
+          e.preventDefault();
+
+          // Show appropriate toast based on social media type
+          switch(socialType) {
+            case 'google':
+              window.showToast('info', 'Google Sign-In', 'Google sign-in is coming soon!');
+              break;
+            case 'facebook':
+              window.showToast('warning', 'Facebook', 'Facebook integration is under maintenance.');
+              break;
+            case 'github':
+              window.showToast('success', 'GitHub', 'GitHub authentication is ready to use!');
+              break;
+            case 'linkedin':
+              window.showToast('error', 'LinkedIn', 'LinkedIn sign-in is temporarily unavailable.');
+              break;
+          }
+
+          // Optional: Redirect after a delay if you still want to go to the server
+          // setTimeout(function() {
+          //   window.location.href = url;
+          // }, 1500);
+        }
+      });
+    });
+  });
+</script>
 {% endblock %}
