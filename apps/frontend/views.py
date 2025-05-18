@@ -24,14 +24,6 @@ def home(request):
     """
     return render(request, 'home.html')
 
-
-
-def toast_test(request):
-    """
-    View for testing toast notifications
-    """
-    return render(request, 'toast_test.html')
-
 @csrf_exempt
 def subscribe_to_mailchimp(request):
     """

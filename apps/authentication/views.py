@@ -2,14 +2,6 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 
 # Create your views here.
-
-def index(_):
-    """
-    Index view for the authentication app
-    Redirects to the signupin page
-    """
-    return redirect('auth:signupin')
-
 def signupin(request):
     """
     View for the sign in / sign up page
