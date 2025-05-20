@@ -53,6 +53,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Add django-browser-reload only in DEBUG mode
+if DEBUG:
+    INSTALLED_APPS += ['django_browser_reload']
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index('django.middleware.common.CommonMiddleware') + 1,
+        'django_browser_reload.middleware.BrowserReloadMiddleware'
+    )
+
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [

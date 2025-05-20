@@ -10,9 +10,10 @@ class ComingSoonMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Bypass in admin or if flag is off
+        # Bypass in admin, static files, browser reload, or if flag is off
         if settings.COMING_SOON \
            and not request.path.startswith('/admin/') \
-           and not request.path.startswith(settings.STATIC_URL):
+           and not request.path.startswith(settings.STATIC_URL) \
+           and not request.path.startswith('/__reload__/'):
             return render(request, 'coming_soon/coming_soon.html', status=503)
         return self.get_response(request)
