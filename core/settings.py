@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_browser_reload',  # Add django-browser-reload
     'authentication',
     'frontend',
 ]
@@ -46,7 +45,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'core.middleware.ComingSoonMiddleware',
     # 'whitenoise.middleware.WhiteNoiseMiddleware',  # Commented out for testing
-    'django_browser_reload.middleware.BrowserReloadMiddleware',  # Add django-browser-reload middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -54,6 +52,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Add django-browser-reload only in DEBUG mode
+if DEBUG:
+    INSTALLED_APPS += ['django_browser_reload']
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index('django.middleware.common.CommonMiddleware') + 1,
+        'django_browser_reload.middleware.BrowserReloadMiddleware'
+    )
 
 ROOT_URLCONF = 'core.urls'
 
