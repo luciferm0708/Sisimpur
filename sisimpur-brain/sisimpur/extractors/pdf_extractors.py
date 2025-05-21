@@ -9,16 +9,15 @@ import re
 from typing import List
 
 import fitz  # PyMuPDF
-import pytesseract
 from PIL import Image
 from pdf2image import convert_from_path
 
 from .base import BaseExtractor
 from ..utils.api_utils import api
 from ..config import DEFAULT_GEMINI_MODEL
+from ..utils.ocr_utils import ocr_with_fallback
 
 logger = logging.getLogger("sisimpur.extractors.pdf")
-pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract" 
 
 class TextPDFExtractor(BaseExtractor):
     """Extractor for text-based PDF documents"""
@@ -98,7 +97,7 @@ class ImagePDFExtractor(BaseExtractor):
         is_likely_question_paper = False
         if len(images) > 0:
             # Check the first page to see if it's a question paper
-            sample_text = pytesseract.image_to_string(images[0], lang='ben+eng')
+            sample_text = ocr_with_fallback(images[0], language_code='ben+eng')
             is_likely_question_paper = self._is_likely_question_paper(sample_text)
             if is_likely_question_paper:
                 logger.info("Detected PDF as likely question paper")
@@ -110,12 +109,16 @@ class ImagePDFExtractor(BaseExtractor):
 
         for i, img in enumerate(images):
             text += f"--- Page {i + 1} ---\n"
-
+            try:
+                page_text = ocr_with_fallback(img, language_code=self.language)
+            except Exception as e:
+                logger.error(f"OCR failed on page {i+1}: {e}")
+                page_text = ""
             # Use Gemini for Bengali or question papers, pytesseract for English
             if self.language == "ben" or is_likely_question_paper:
                 page_text = self._extract_with_gemini(img, is_likely_question_paper)
             else:
-                page_text = pytesseract.image_to_string(img, lang=self.language)
+                page_text = ocr_with_fallback(img, lang=self.language)
 
             text += page_text
             text += "\n\n"
@@ -154,7 +157,7 @@ class ImagePDFExtractor(BaseExtractor):
                 img = Image.open(io.BytesIO(pix.tobytes("png")))
 
                 # Check if it's a question paper
-                sample_text = pytesseract.image_to_string(img, lang='ben+eng')
+                sample_text = ocr_with_fallback(img, language_code='ben+eng')
                 is_likely_question_paper = self._is_likely_question_paper(sample_text)
 
                 if is_likely_question_paper:
@@ -179,7 +182,7 @@ class ImagePDFExtractor(BaseExtractor):
                 if self.language == "ben" or is_likely_question_paper:
                     page_text = self._extract_with_gemini(img, is_likely_question_paper)
                 else:
-                    page_text = pytesseract.image_to_string(img, lang=self.language)
+                    page_text = ocr_with_fallback(img, lang=self.language)
 
                 text += page_text
                 text += "\n\n"
@@ -209,7 +212,7 @@ class ImagePDFExtractor(BaseExtractor):
         if not is_question_paper:
             try:
                 # Get a small sample of text to check if it's a question paper
-                sample_text = pytesseract.image_to_string(img, lang='ben+eng')
+                sample_text = ocr_with_fallback(img, language_code='ben+eng')
                 is_question_paper = self._is_likely_question_paper(sample_text)
             except Exception:
                 is_question_paper = False
@@ -242,7 +245,7 @@ class ImagePDFExtractor(BaseExtractor):
             logger.error(f"Error using Gemini for OCR: {e}")
             # Fallback to pytesseract
             logger.info("Falling back to pytesseract for OCR")
-            return pytesseract.image_to_string(img, lang='ben')
+            return ocr_with_fallback(img, language_code='ben')
 
     def _is_likely_question_paper(self, text: str) -> bool:
         """
