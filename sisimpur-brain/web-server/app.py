@@ -98,7 +98,10 @@ def generate():
 
     except Exception as e:
         app.logger.error("An error occurred: %s", e, exc_info=True)
-        return jsonify({"success": False, "error": "An internal error has occurred."}), 500
+        return (
+            jsonify({"success": False, "error": "An internal error has occurred."}),
+            500,
+        )
 
 
 @app.route("/api/generate", methods=["POST"])
