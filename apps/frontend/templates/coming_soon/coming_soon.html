@@ -3,7 +3,7 @@ SISIMPUR{% endblock %}
 
 {% block head %}
 <style>
-  
+
 #success-text {
   color: #fff;
   text-align: center;
@@ -317,12 +317,15 @@ document.addEventListener("DOMContentLoaded", function () {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log("📦 Response data:", data);
         submitBeta.disabled = false;
         submitBeta.innerText = "Submit Application";
 
         if (data.success) {
-          showSuccessMessage(data.message?.trim() ? data.message : "Hurray! You are registered as a beta tester.");
+          // Update modal title
+          document.getElementById('betaModalLabel').innerText = data.title || "You're In!";
+
+          // Show message
+          showSuccessMessage(data.message || "Let the magic begin! ✨🌈");
         } else {
           showErrorMessage(data.error || "Something went wrong. Please try again.");
         }

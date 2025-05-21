@@ -78,7 +78,11 @@ def subscribe_to_mailchimp(request):
         result = mailchimp.add_subscriber(list_id, email, status="subscribed")
 
         if result['success']:
-            return JsonResponse({'success': True, 'message': 'Thank you for subscribing!'})
+            return JsonResponse({
+    'success': True,
+    'title': "🎉 Yay! You're part of the Sisimpur Circle 🐾",
+    'message': "Early access? ✅ Secret features? ✅\nBig hugs from the team 💛\nLet the magic begin! ✨🌈"
+})
         else:
             print("Shomossa Ekhane 4")
             return JsonResponse({'success': False, 'error': result['error']}, status=400)
