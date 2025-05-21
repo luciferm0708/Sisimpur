@@ -1,4 +1,4 @@
-name: Auto Format Code with Black & Prettier
+name: Debug & Auto-Format Code
 
 on:
   pull_request:
@@ -8,40 +8,76 @@ permissions:
   contents: write
 
 jobs:
-  autoformat:
+  debug-and-format:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Check out the PR’s branch (with credentials so we can push back)
+      # ——————————————
+      # 1️⃣ CHECKOUT
+      # ——————————————
       - name: Checkout code
         uses: actions/checkout@v3
         with:
+          # ensure we can push back later
           persist-credentials: true
+          # bring full history if you ever need to commit
+          fetch-depth: 0
 
-      # 2️⃣ Run Black over all your Python files
-      - name: Set up Python
+      # ——————————————
+      # 2️⃣ DEBUG: confirm workflow file
+      # ——————————————
+      - name: List workflow files
+        run: ls -R .github/workflows
+
+      - name: Show prettier.yml
+        run: sed -n '1,200p' .github/workflows/prettier.yml || echo "prettier.yml not found"
+
+      # ——————————————
+      # 3️⃣ DEBUG: inspect Git state
+      # ——————————————
+      - name: Debug Git state
+        run: |
+          echo "=== Git environment variables ==="
+          echo "GITHUB_REF       = $GITHUB_REF"
+          echo "GITHUB_HEAD_REF  = ${{ github.head_ref }}"
+          echo "GITHUB_BASE_REF  = ${{ github.base_ref }}"
+          echo
+          echo "=== git status & branches ==="
+          git status
+          git rev-parse --abbrev-ref HEAD || true
+          git branch -avv
+          echo
+          echo "=== git remotes ==="
+          git remote -v
+
+      # ——————————————
+      # 4️⃣ FORMAT PYTHON
+      # ——————————————
+      - name: Set up Python and run Black
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-      - name: Install and run Black
+      - name: Install & run Black
         run: |
           pip install black
           black .
 
-      # 3️⃣ Install Prettier (no package-lock, no node_modules cleanup)
+      # ——————————————
+      # 5️⃣ FORMAT TEMPLATES WITH PRETTIER (ditch the action)
+      # ——————————————
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
       - name: Install Prettier
         run: npm install --no-save prettier
-
-      # 4️⃣ Format your HTML, CSS & JS files
       - name: Prettify HTML/CSS/JS
         run: npx prettier --write "**/*.{html,css,js}"
 
-      # 5️⃣ Commit & push *all* formatting changes back to the head branch
-      - name: Commit formatting changes
+      # ——————————————
+      # 6️⃣ PUSH ALL CHANGES BACK
+      # ——————————————
+      - name: Commit & push formatting changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Apply Black & Prettier formatting"
