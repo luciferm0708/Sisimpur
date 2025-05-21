@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the PR branch
+      - name: Checkout PR branch
         uses: actions/checkout@v3
         with:
-          # checkout the feature branch (not the auto-merge ref)
+          # 👇 checkout the actual head branch, not the auto‐merge ref
           ref: ${{ github.event.pull_request.head.ref }}
-          # fetch full history so git commit & push work
+          # 👇 bring down full history so git commit & push work
           fetch-depth: 0
 
       - name: Run Prettier
