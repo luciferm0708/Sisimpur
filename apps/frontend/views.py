@@ -81,8 +81,10 @@ def subscribe_to_mailchimp(request):
             print("Shomossa Ekhane 3")
             # If there's an error getting lists, use a placeholder for testing
             # In production, this should be handled more gracefully
+            import logging
+            logging.error(f"Error connecting to Mailchimp: {str(e)}")
             return JsonResponse(
-                {"success": False, "error": f"Error connecting to Mailchimp: {str(e)}"},
+                {"success": False, "error": "An internal error occurred while connecting to Mailchimp."},
                 status=500,
             )
 
