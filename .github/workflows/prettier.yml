@@ -2,7 +2,7 @@ name: Debug & Auto-Format Code
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
