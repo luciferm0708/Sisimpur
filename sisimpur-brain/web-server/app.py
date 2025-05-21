@@ -6,6 +6,7 @@ This module provides a web interface for the Sisimpur Brain system.
 
 import os
 import json
+import logging
 from flask import Flask, request, render_template, jsonify, redirect, url_for
 from werkzeug.utils import secure_filename
 
@@ -17,6 +18,7 @@ from sisimpur.generators.generate_qa_raw_text import generate_qa_from_raw_text
 from sisimpur.config import GEMINI_API_KEY
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.ERROR)
 app.config["UPLOAD_FOLDER"] = "uploads"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max upload size
 app.config["ALLOWED_EXTENSIONS"] = {"txt"}
@@ -95,7 +97,8 @@ def generate():
         return jsonify({"success": True, "output_file": output_file, "data": qa_data})
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        app.logger.error("An error occurred: %s", e, exc_info=True)
+        return jsonify({"success": False, "error": "An internal error has occurred."}), 500
 
 
 @app.route("/api/generate", methods=["POST"])
