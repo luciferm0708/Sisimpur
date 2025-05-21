@@ -12,35 +12,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the PR branch (full history isn’t strictly needed
-      #    since we’re not committing from here, but you can do fetch-depth: 0)
+      # 1️⃣ Checkout the PR’s code
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           persist-credentials: true
 
-      # 2️⃣ Format all your .py files with Black
-      - name: Set up Python & run Black
+      # 2️⃣ Set up Python & run Black
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-      - run: |
+      - name: Install and run Black
+        run: |
           pip install black
           black .
 
-      # 3️⃣ Prettier on your templates — no node_modules cleanup, no commit
-      - name: Run Prettier on HTML/CSS/JS
-        uses: creyD/prettier_action@v4.5
+      # 3️⃣ Set up Node.js and install Prettier
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          file_pattern: |
-            **/*.html
-            **/*.css
-            **/*.js
-          prettier_options: --write
-          clean_node_folder: false   # ◀ disable any node_modules deletion
-          no_commit: true            # ◀ skip Prettier’s git commit/push
+          node-version: '18'
+      - name: Install Prettier
+        run: npm install --no-save prettier
 
-      # 4️⃣ Create (or update) a PR with *all* of Black’s and Prettier’s changes
+      # 4️⃣ Prettify your templates
+      - name: Prettify HTML/CSS/JS
+        run: npx prettier --write "**/*.{html,css,js}"
+
+      # 5️⃣ Create or update a PR with all changes
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
