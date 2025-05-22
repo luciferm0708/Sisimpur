@@ -3,7 +3,8 @@ Main document processor for Sisimpur Brain.
 
 This module provides the main document processing pipeline.
 """
-#Need Fine tuning here
+
+# Need Fine tuning here
 import logging
 from typing import Dict, Any, Optional
 
@@ -18,6 +19,7 @@ from .utils.extractor_factory import get_extractor
 from .utils.file_utils import save_qa_pairs
 
 logger = logging.getLogger("sisimpur.processor")
+
 
 class DocumentProcessor:
     """Main document processing pipeline"""
@@ -34,8 +36,7 @@ class DocumentProcessor:
         Returns:
             Path to the generated JSON file
         """
-        
-        
+
         try:
             # Step 1: Detect document type
             logger.info(f"Detecting document type for: {file_path}")
@@ -73,8 +74,12 @@ class DocumentProcessor:
                     # Specialized processor for genuine question papers
                     logger.info("Document detected as a question paper, using specialized processor")
                     processor = QuestionPaperProcessor(language=language)
-                    qa_pairs = processor.process(extracted_text, max_questions=num_questions)
-                    logger.info(f"Extracted {len(qa_pairs)} questions from question paper")
+                    qa_pairs = processor.process(
+                        extracted_text, max_questions=num_questions
+                    )
+                    logger.info(
+                        f"Extracted {len(qa_pairs)} questions from question paper"
+                    )
                 else:
                     # Standard QA generation
                     logger.info("Using standard QA generator")
@@ -93,7 +98,6 @@ class DocumentProcessor:
             logger.error(f"Error processing document: {e}")
             raise
 
-        
     def _get_extractor(self, metadata: Dict[str, Any]) -> BaseExtractor:
         """
         Get appropriate extractor based on document metadata.
@@ -114,13 +118,17 @@ class DocumentProcessor:
             else:  # image_based or unknown
                 language = metadata.get("language", "eng")
                 lang_code = "ben" if language == "bengali" else "eng"
-                logging.getLogger("sisimpur.processor").info(f"Using ImagePDFExtractor with language: {lang_code}")
+                logging.getLogger("sisimpur.processor").info(
+                    f"Using ImagePDFExtractor with language: {lang_code}"
+                )
                 return ImagePDFExtractor(language=lang_code)
 
         elif doc_type == "image":
             language = metadata.get("language", "eng")
             lang_code = "ben" if language == "bengali" else "eng"
-            logging.getLogger("sisimpur.processor").info(f"Using ImageExtractor with language: {lang_code}")
+            logging.getLogger("sisimpur.processor").info(
+                f"Using ImageExtractor with language: {lang_code}"
+            )
             return ImageExtractor(language=lang_code)
 
         else:
