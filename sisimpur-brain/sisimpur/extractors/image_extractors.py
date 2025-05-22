@@ -1,82 +1,70 @@
-"""
-Image extractors for Sisimpur Brain.
-
-This module provides extractors for image documents.
-"""
-
 import logging
 import re
 import numpy as np
 import cv2
-import pytesseract
 from PIL import Image
+import easyocr
 
 from .base import BaseExtractor
 from ..utils.api_utils import api
 from ..config import DEFAULT_GEMINI_MODEL
 
 logger = logging.getLogger("sisimpur.extractors.image")
-pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract" 
+
 
 class ImageExtractor(BaseExtractor):
-    """Extractor for image documents"""
+    """Extractor for image documents, using EasyOCR instead of Tesseract."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Map your language codes to EasyOCR’s codes:
+        lang_map = {
+            "ben": "bn",  # Bengali
+            "eng": "en",  # English
+            # add more if needed
+        }
+        langs = [lang_map.get(self.language, self.language)]
+        # initialize once, CPU‐only
+        self.reader = easyocr.Reader(langs, gpu=False)
 
     def extract(self, file_path: str) -> str:
-        """
-        Extract text from image using OCR.
-
-        Args:
-            file_path: Path to the image file
-
-        Returns:
-            Extracted text
-        """
         try:
             img = Image.open(file_path)
-
-            # Preprocess image for better OCR
             img = self._preprocess_image(img)
 
-            # Use Gemini for Bengali, pytesseract for English
+            # If you still want to special-case Bengali Q-papers via Gemini:
             if self.language == "ben":
-                text = self._extract_with_gemini(img)
+                return self._extract_with_gemini(img)
             else:
-                text = pytesseract.image_to_string(img, lang=self.language)
-
-            temp_path = self.save_to_temp(text, file_path)
-            return text
+                return self._extract_with_easyocr(img)
 
         except Exception as e:
             logger.error(f"Error extracting text from image: {e}")
             raise
 
     def _preprocess_image(self, img: Image.Image) -> Image.Image:
-        """
-        Preprocess image for better OCR results.
-
-        Args:
-            img: The image to preprocess
-
-        Returns:
-            Preprocessed image
-        """
-        # Convert PIL Image to OpenCV format
         img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-
-        # Resize image (scale up for better OCR)
-        height, width = img_cv.shape[:2]
-        img_cv = cv2.resize(img_cv, (width * 2, height * 2), interpolation=cv2.INTER_CUBIC)
-
-        # Convert to grayscale
+        h, w = img_cv.shape[:2]
+        img_cv = cv2.resize(img_cv, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
         gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-
-        # Apply adaptive thresholding
         thresh = cv2.adaptiveThreshold(
             gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
         )
-
-        # Convert back to PIL Image
         return Image.fromarray(thresh)
+
+    def _extract_with_easyocr(self, img: Image.Image) -> str:
+        """
+        Run EasyOCR on the image and join results into a single string.
+        """
+        arr = np.array(img)
+        # detail=0 returns only text, paragraph=True merges lines
+        results = self.reader.readtext(arr, detail=0, paragraph=True)
+        text = "\n".join(results)
+        # optionally save to temp
+        self.save_to_temp(text, None)
+        return text
+
+    # … keep your _extract_with_gemini and _is_likely_question_paper as before …
 
     def _extract_with_gemini(self, img: Image.Image) -> str:
         """
@@ -92,7 +80,7 @@ class ImageExtractor(BaseExtractor):
         # We'll use a small portion of the image to check
         try:
             # Get a small sample of text to check if it's a question paper
-            sample_text = pytesseract.image_to_string(img, lang='ben')
+            sample_text = pytesseract.image_to_string(img, lang="ben")
             is_likely_question_paper = self._is_likely_question_paper(sample_text)
         except Exception:
             is_likely_question_paper = False
@@ -120,13 +108,15 @@ class ImageExtractor(BaseExtractor):
             )
 
         try:
-            response = api.generate_content([prompt, img], model_name=DEFAULT_GEMINI_MODEL)
+            response = api.generate_content(
+                [prompt, img], model_name=DEFAULT_GEMINI_MODEL
+            )
             return response.text
         except Exception as e:
             logger.error(f"Error using Gemini for OCR: {e}")
             # Fallback to pytesseract
             logger.info("Falling back to pytesseract for OCR")
-            return pytesseract.image_to_string(img, lang='ben')
+            return pytesseract.image_to_string(img, lang="ben")
 
     def _is_likely_question_paper(self, text: str) -> bool:
         """
@@ -139,22 +129,24 @@ class ImageExtractor(BaseExtractor):
             True if likely a question paper, False otherwise
         """
         # Check for Bengali question numbers
-        bengali_numbers = re.findall(r'[১২৩৪৫৬৭৮৯০]+\.', text)
+        bengali_numbers = re.findall(r"[১২৩৪৫৬৭৮৯০]+\.", text)
 
         # Check for Bengali MCQ options
-        bengali_options = re.findall(r'[কখগঘ]\.', text)
+        bengali_options = re.findall(r"[কখগঘ]\.", text)
 
         # Check for common Bengali question paper terms
         bengali_terms = ["প্রশ্ন", "উত্তর", "পরীক্ষা", "নম্বর"]
         term_matches = sum(1 for term in bengali_terms if term in text)
 
         # Check for English question numbers and options too
-        question_numbers = re.findall(r'\d+\.', text)
-        mcq_options = re.findall(r'[A-Da-d]\.', text)
+        question_numbers = re.findall(r"\d+\.", text)
+        mcq_options = re.findall(r"[A-Da-d]\.", text)
 
         # If we find multiple question numbers or MCQ options
-        return (len(bengali_numbers) >= 2 or
-                len(bengali_options) >= 4 or
-                term_matches >= 2 or
-                len(question_numbers) >= 2 or
-                len(mcq_options) >= 4)
+        return (
+            len(bengali_numbers) >= 2
+            or len(bengali_options) >= 4
+            or term_matches >= 2
+            or len(question_numbers) >= 2
+            or len(mcq_options) >= 4
+        )
