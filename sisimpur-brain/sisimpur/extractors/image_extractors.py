@@ -100,12 +100,51 @@ class ImageExtractor(BaseExtractor):
         boxes = self._merge_close_boxes(boxes)
 
         results = []
+        mcq_pattern = re.compile(r'^(?:[১২৩৪৫৬৭৮৯০]+\.|\d+\.)\s*')  # Bengali/English question numbers
+        option_pattern = re.compile(r'^(?:[ক-ঘ]|\([ক-ঘ]\)|[a-dA-D]|\([a-dA-D]\))[\.\)]')  # Option markers
+
         for (x, y, w, h) in boxes:
             crop_img = img[y:y+h, x:x+w]
             ocr_results = self.reader.readtext(crop_img, detail=1, paragraph=False)
-            filtered_texts = [res[1] for res in ocr_results if res[2] > 0.3]
-            text_block = " ".join(filtered_texts)
-            results.append(text_block)
+
+            # Filter out low confidence results
+            filtered = [res for res in ocr_results if res[2] > 0.3]
+
+            # Group text by approximate line (using y center of box)
+            lines = {}
+            for bbox, text, conf in filtered:
+                # bbox = 4 points, get center y
+                y_center = (bbox[0][1] + bbox[2][1]) / 2
+                line_key = int(y_center // 10)  # group every 10 px approx
+                lines.setdefault(line_key, []).append((bbox[0][0], text))  # sort by x position later
+
+            # Sort lines by vertical position
+            sorted_lines = [lines[k] for k in sorted(lines.keys())]
+
+            text_lines = []
+            for line in sorted_lines:
+                # Sort words by horizontal position
+                line_sorted = sorted(line, key=lambda x: x[0])
+                line_text = " ".join([w[1] for w in line_sorted])
+                text_lines.append(line_text)
+
+            # Post-process to preserve MCQ formatting
+            formatted_lines = []
+            for line in text_lines:
+                if mcq_pattern.match(line):
+                    # New question, add blank line before
+                    if formatted_lines:
+                        formatted_lines.append("")  
+                    formatted_lines.append(line)
+                elif option_pattern.match(line):
+                    # Indent options
+                    formatted_lines.append("    " + line)
+                else:
+                    # Normal continuation line
+                    formatted_lines.append(line)
+
+            block_text = "\n".join(formatted_lines)
+            results.append(block_text)
 
         combined_text = "\n\n".join(results)
         return combined_text

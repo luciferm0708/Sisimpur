@@ -7,10 +7,12 @@ This module provides extractors for PDF documents.
 import logging
 import re
 from typing import List
-
+import cv2
+import numpy as np
 import fitz  # PyMuPDF
 from PIL import Image
 from pdf2image import convert_from_path
+import easyocr
 
 from .base import BaseExtractor
 from ..utils.api_utils import api
@@ -59,8 +61,15 @@ class ImagePDFExtractor(BaseExtractor):
         Args:
             language: Language code for OCR (e.g., 'eng', 'ben')
         """
-        super().__init__()
-        self.language = language
+        def __init__(self, language: str = "eng"):
+            super().__init__()
+            self.language = language
+            lang_map = {
+                "ben": "bn",
+                "eng": "en",
+            }
+            langs = [lang_map.get(language, language)]
+            self.reader = easyocr.Reader(langs, gpu=False) 
 
     def extract(self, file_path: str) -> str:
         """
@@ -73,18 +82,14 @@ class ImagePDFExtractor(BaseExtractor):
             Extracted text
         """
         try:
-            # Try to convert PDF to images using pdf2image (requires Poppler)
             try:
                 logger.info("Attempting to convert PDF to images using pdf2image")
                 images = convert_from_path(file_path)
                 return self._process_images(images, file_path)
             except Exception as pdf2image_error:
-                logger.warning(f"pdf2image failed (Poppler may not be installed): {pdf2image_error}")
+                logger.warning(f"pdf2image failed (Poppler may not installed): {pdf2image_error}")
                 logger.info("Falling back to PyMuPDF for image extraction")
-
-                # Fallback to PyMuPDF for image extraction
                 return self._extract_with_pymupdf(file_path)
-
         except Exception as e:
             logger.error(f"Error extracting text from image-based PDF: {e}")
             raise
@@ -110,7 +115,7 @@ class ImagePDFExtractor(BaseExtractor):
         for i, img in enumerate(images):
             text += f"--- Page {i + 1} ---\n"
             try:
-                page_text = ocr_with_fallback(img, language_code=self.language)
+                page_text = self._extract_with_layout_ocr(np.array(img))
             except Exception as e:
                 logger.error(f"OCR failed on page {i+1}: {e}")
                 page_text = ""
@@ -196,6 +201,92 @@ class ImagePDFExtractor(BaseExtractor):
         except Exception as e:
             logger.error(f"Error extracting with PyMuPDF: {e}")
             raise
+    
+    def _preprocess_image(self, img):
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray = cv2.equalizeHist(gray)
+        _, binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+        dilated = cv2.dilate(binary, kernel, iterations=2)
+        return dilated
+
+    def _get_text_blocks(self, binary_img):
+        contours, _ = cv2.findContours(binary_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        boxes = []
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            if w > 100 and h > 50:  # Tune thresholds if necessary
+                boxes.append((x, y, w, h))
+        boxes = sorted(boxes, key=lambda b: (b[1], b[0]))
+        return boxes
+
+    def _merge_close_boxes(self, boxes, threshold=15):
+        if not boxes:
+            return []
+        merged = [boxes[0]]
+        for box in boxes[1:]:
+            x, y, w, h = box
+            last_x, last_y, last_w, last_h = merged[-1]
+            # Merge if vertical distance is less than threshold and horizontal overlaps
+            if abs(y - last_y) < threshold and (x < last_x + last_w):
+                new_x = min(x, last_x)
+                new_y = min(y, last_y)
+                new_w = max(x + w, last_x + last_w) - new_x
+                new_h = max(y + h, last_y + last_h) - new_y
+                merged[-1] = (new_x, new_y, new_w, new_h)
+            else:
+                merged.append(box)
+        return merged
+
+    def _extract_with_layout_ocr(self, img):
+        dilated = self._preprocess_image(img)
+        boxes = self._get_text_blocks(dilated)
+        boxes = self._merge_close_boxes(boxes)
+
+        results = []
+        mcq_pattern = re.compile(r'^(?:[১২৩৪৫৬৭৮৯০]+\.|\d+\.)\s*')  # Bengali/English question numbers
+        option_pattern = re.compile(r'^(?:[ক-ঘ]|\([ক-ঘ]\)|[a-dA-D]|\([a-dA-D]\))[\.\)]')  # Option markers
+
+        for (x, y, w, h) in boxes:
+            crop_img = img[y:y+h, x:x+w]
+            ocr_results = self.reader.readtext(crop_img, detail=1, paragraph=False)
+
+            # Filter out low confidence results
+            filtered = [res for res in ocr_results if res[2] > 0.3]
+
+            # Group text by approximate line (using y center of box)
+            lines = {}
+            for bbox, text, conf in filtered:
+                y_center = (bbox[0][1] + bbox[2][1]) / 2
+                line_key = int(y_center // 10)
+                lines.setdefault(line_key, []).append((bbox[0][0], text))
+
+            # Sort lines by vertical position
+            sorted_lines = [lines[k] for k in sorted(lines.keys())]
+
+            text_lines = []
+            for line in sorted_lines:
+                line_sorted = sorted(line, key=lambda x: x[0])
+                line_text = " ".join([w[1] for w in line_sorted])
+                text_lines.append(line_text)
+
+            # Post-process to preserve MCQ formatting
+            formatted_lines = []
+            for line in text_lines:
+                if mcq_pattern.match(line):
+                    if formatted_lines:
+                        formatted_lines.append("")
+                    formatted_lines.append(line)
+                elif option_pattern.match(line):
+                    formatted_lines.append("    " + line)
+                else:
+                    formatted_lines.append(line)
+
+            block_text = "\n".join(formatted_lines)
+            results.append(block_text)
+
+        combined_text = "\n\n".join(results)
+        return combined_text
 
     def _extract_with_gemini(self, img: Image.Image, is_question_paper: bool = False) -> str:
         """
@@ -244,7 +335,7 @@ class ImagePDFExtractor(BaseExtractor):
         except Exception as e:
             logger.error(f"Error using Gemini for OCR: {e}")
             # Fallback to pytesseract
-            logger.info("Falling back to pytesseract for OCR")
+            logger.info("Falling back to EasyOCR for OCR")
             return ocr_with_fallback(img, language_code='ben')
 
     def _is_likely_question_paper(self, text: str) -> bool:
