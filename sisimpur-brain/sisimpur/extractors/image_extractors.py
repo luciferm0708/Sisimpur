@@ -8,39 +8,147 @@ import easyocr
 from .base import BaseExtractor
 from ..utils.api_utils import api
 from ..config import DEFAULT_GEMINI_MODEL
+from ..utils.ocr_utils import ocr_with_fallback
 
 logger = logging.getLogger("sisimpur.extractors.image")
 
 
 class ImageExtractor(BaseExtractor):
-    """Extractor for image documents, using EasyOCR instead of Tesseract."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Map your language codes to EasyOCR’s codes:
         lang_map = {
             "ben": "bn",  # Bengali
             "eng": "en",  # English
-            # add more if needed
         }
         langs = [lang_map.get(self.language, self.language)]
-        # initialize once, CPU‐only
         self.reader = easyocr.Reader(langs, gpu=False)
 
     def extract(self, file_path: str) -> str:
         try:
-            img = Image.open(file_path)
-            img = self._preprocess_image(img)
-
-            # If you still want to special-case Bengali Q-papers via Gemini:
-            if self.language == "ben":
-                return self._extract_with_gemini(img)
-            else:
-                return self._extract_with_easyocr(img)
-
+            img = cv2.imread(file_path)
+            img = self._deskew_image(img)
+            text = self._extract_with_layout_ocr(img)
+            self.save_to_temp(text, file_path)
+            return text
         except Exception as e:
             logger.error(f"Error extracting text from image: {e}")
             raise
+
+    def _deskew_image(self, img):
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        lines = cv2.HoughLines(edges, 1, np.pi/180, 200)
+        if lines is not None:
+            angles = []
+            for rho, theta in lines[:,0]:
+                angle = (theta * 180 / np.pi) - 90
+                if -45 < angle < 45:
+                    angles.append(angle)
+            if angles:
+                median_angle = np.median(angles)
+                (h, w) = img.shape[:2]
+                center = (w // 2, h // 2)
+                M = cv2.getRotationMatrix2D(center, median_angle, 1.0)
+                img = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+        return img
+
+    def (self, img):
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        binary = cv2.adaptiveThreshold(gray, 255,
+                                       cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                       cv2.THRESH_BINARY_INV,
+                                       15, 10)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9,9))
+        dilated = cv2.dilate(binary, kernel, iterations=2)
+        return dilated
+
+    def _get_text_blocks(self, binary_img):
+        contours, _ = cv2.findContours(binary_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        boxes = []
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            if 150 < w < 4000 and 50 < h < 1500:
+                boxes.append((x, y, w, h))
+        boxes = sorted(boxes, key=lambda b: (b[1], b[0]))
+        return boxes
+
+    def _merge_close_boxes(self, boxes, max_v_gap=15, max_h_gap=15):
+
+        if not boxes:
+            return []
+        merged = []
+        current = boxes[0]
+        for box in boxes[1:]:
+            x1, y1, w1, h1 = current
+            x2, y2, w2, h2 = box
+
+            if abs(y2 - (y1 + h1)) <= max_v_gap and abs(x2 - x1) <= max_h_gap:
+                new_x = min(x1, x2)
+                new_y = min(y1, y2)
+                new_w = max(x1 + w1, x2 + w2) - new_x
+                new_h = max(y1 + h1, y2 + h2) - new_y
+                current = (new_x, new_y, new_w, new_h)
+            else:
+                merged.append(current)
+                current = box
+        merged.append(current)
+        return merged
+
+    def _extract_with_layout_ocr(self, img):
+        binary_img = self._preprocess_image(img)
+        boxes = self._get_text_blocks(binary_img)
+        boxes = self._merge_close_boxes(boxes)
+
+        results = []
+        mcq_pattern = re.compile(r'^(?:[১২৩৪৫৬৭৮৯০]+\.|\d+\.)\s*')  # Bengali/English question numbers
+        option_pattern = re.compile(r'^(?:[ক-ঘ]|\([ক-ঘ]\)|[a-dA-D]|\([a-dA-D]\))[\.\)]')  # Option markers
+
+        for (x, y, w, h) in boxes:
+            crop_img = img[y:y+h, x:x+w]
+            ocr_results = self.reader.readtext(crop_img, detail=1, paragraph=False)
+
+            # Filter out low confidence results
+            filtered = [res for res in ocr_results if res[2] > 0.3]
+
+            # Group text by approximate line (using y center of box)
+            lines = {}
+            for bbox, text, conf in filtered:
+                # bbox = 4 points, get center y
+                y_center = (bbox[0][1] + bbox[2][1]) / 2
+                line_key = int(y_center // 10)  # group every 10 px approx
+                lines.setdefault(line_key, []).append((bbox[0][0], text))  # sort by x position later
+
+            # Sort lines by vertical position
+            sorted_lines = [lines[k] for k in sorted(lines.keys())]
+
+            text_lines = []
+            for line in sorted_lines:
+                # Sort words by horizontal position
+                line_sorted = sorted(line, key=lambda x: x[0])
+                line_text = " ".join([w[1] for w in line_sorted])
+                text_lines.append(line_text)
+
+            # Post-process to preserve MCQ formatting
+            formatted_lines = []
+            for line in text_lines:
+                if mcq_pattern.match(line):
+                    # New question, add blank line before
+                    if formatted_lines:
+                        formatted_lines.append("")  
+                    formatted_lines.append(line)
+                elif option_pattern.match(line):
+                    # Indent options
+                    formatted_lines.append("    " + line)
+                else:
+                    # Normal continuation line
+                    formatted_lines.append(line)
+
+            block_text = "\n".join(formatted_lines)
+            results.append(block_text)
+
+        combined_text = "\n\n".join(results)
+        return combined_text
 
     def _preprocess_image(self, img: Image.Image) -> Image.Image:
         img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
@@ -64,7 +172,6 @@ class ImageExtractor(BaseExtractor):
         self.save_to_temp(text, None)
         return text
 
-    # … keep your _extract_with_gemini and _is_likely_question_paper as before …
 
     def _extract_with_gemini(self, img: Image.Image) -> str:
         """
@@ -80,7 +187,7 @@ class ImageExtractor(BaseExtractor):
         # We'll use a small portion of the image to check
         try:
             # Get a small sample of text to check if it's a question paper
-            sample_text = pytesseract.image_to_string(img, lang="ben")
+            sample_text = ocr_with_fallback(img, language_code='ben')
             is_likely_question_paper = self._is_likely_question_paper(sample_text)
         except Exception:
             is_likely_question_paper = False
@@ -115,8 +222,8 @@ class ImageExtractor(BaseExtractor):
         except Exception as e:
             logger.error(f"Error using Gemini for OCR: {e}")
             # Fallback to pytesseract
-            logger.info("Falling back to pytesseract for OCR")
-            return pytesseract.image_to_string(img, lang="ben")
+            logger.info("Falling back to OCR Utils")
+            return ocr_with_fallback(img, language_code='ben')
 
     def _is_likely_question_paper(self, text: str) -> bool:
         """
