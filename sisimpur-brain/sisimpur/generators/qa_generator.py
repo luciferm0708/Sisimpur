@@ -249,8 +249,6 @@ class QAGenerator:
         m = re.search(r"```json(.*?)```", resp_text, re.S) \
         or re.search(r"```(.*?)```", resp_text, re.S)
         raw = m.group(1).strip() if m else resp_text
-
-        # NEW: remove any comma immediately followed by optional whitespace and then '}' or ']'
         raw = re.sub(r',\s*(?=[}\]])', '', raw)
 
         return raw
